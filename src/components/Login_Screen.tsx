@@ -1,62 +1,113 @@
 import { useState } from "react";
-import { FaUser, FaLock } from "react-icons/fa";
 
 const LoginScreen = () => {
-    const [email, setEmail] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
+    const [email, setEmail] = useState("");
+    const [otp, setOtp] = useState("");
+    const [step, setStep] = useState(1); // Step 1: Enter email, Step 2: Enter OTP
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (email === "user@example.com" && password === "password123") {
+    const handleRequestOtp = async () => {
+        setError("");
+        setLoading(true);
+        try {
+            const response = await fetch("http://127.0.0.1:8010/request-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to send Password. Please check your email.");
+            }
+
+            alert("Password sent to your email!");
+            setStep(2);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        setError("");
+        setLoading(true);
+        try {
+            const response = await fetch("http://127.0.0.1:8010/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Invalid Password. Please try again.");
+            }
+
             alert("Login successful!");
-        } else {
-            setError("Invalid email or password");
+            localStorage.setItem("isAuthenticated", "true"); // Store login state
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white p-6">
-            <div className="bg-gray-800 p-14 rounded-3xl shadow-2xl w-full max-w-lg text-center">
-                <h2 className="text-5xl font-extrabold text-white mb-10">Sign In</h2>
-                {error && <p className="text-red-500 text-lg text-center mb-4">{error}</p>}
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-900 to-indigo-900 text-white">
+            <div className="bg-gray-800 p-12 rounded-3xl shadow-2xl w-full max-w-lg text-center">
 
-                <form onSubmit={handleLogin} className="flex flex-col space-y-8">
-                    <div className="relative">
-                        <FaUser className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl" />
+                {/* Title */}
+                <h1 className="text-6xl font-bold text-white mb-6">PlayDate</h1>
+                <h2 className="text-3xl font-semibold text-gray-300 mb-10">
+                    {step === 1 ? "Sign In with Email" : "Enter Password"}
+                </h2>
+
+                {error && <p className="text-red-500 text-lg mb-4">{error}</p>}
+
+                {step === 1 ? (
+                    <div>
                         <input
                             type="email"
-                            placeholder="Email Address"
+                            placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="pl-14 p-5 w-full bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500 text-white text-xl"
+                            className="p-4 w-full bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500 text-white text-xl"
                         />
+                        <button
+                            onClick={handleRequestOtp}
+                            className="bg-blue-600 text-white py-3 text-xl font-bold rounded-xl hover:bg-blue-700 transition duration-300 shadow-lg w-full mt-6"
+                            disabled={loading}
+                        >
+                            {loading ? "Sending Password..." : "Login"}
+                        </button>
                     </div>
-                    <div className="relative">
-                        <FaLock className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl" />
+                ) : (
+                    <div>
                         <input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            type="text"
+                            placeholder="Enter Password"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
                             required
-                            className="pl-14 p-5 w-full bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500 text-white text-xl"
+                            className="p-4 w-full bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500 text-white text-xl"
                         />
+                        <button
+                            onClick={handleVerifyOtp}
+                            className="bg-green-600 text-white py-3 text-xl font-bold rounded-xl hover:bg-green-700 transition duration-300 shadow-lg w-full mt-6"
+                            disabled={loading}
+                        >
+                            {loading ? "Verifying..." : "Verify Password"}
+                        </button>
                     </div>
-                    <button
-                        type="submit"
-                        className="bg-blue-600 text-white py-4 text-xl font-bold rounded-2xl hover:bg-blue-700 transition duration-300 shadow-lg w-full"
-                    >
-                        Login
-                    </button>
-                </form>
+                )}
 
                 <p className="text-center text-lg text-gray-400 mt-8">
-                    Don't have an account?{' '}
-                    <a href="#" className="text-blue-400 hover:underline text-xl">
-                        Sign up
-                    </a>
+                    Didn't receive an Password?{" "}
+                    <button onClick={handleRequestOtp} className="text-blue-400 hover:underline">
+                        Resend Password
+                    </button>
                 </p>
             </div>
         </div>
