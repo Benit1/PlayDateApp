@@ -1,53 +1,74 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const LoginScreen = () => {
     const [email, setEmail] = useState("");
-    const [otp, setOtp] = useState("");
-    const [step, setStep] = useState(1); // Step 1: Enter email, Step 2: Enter OTP
+    const [password, setPassword] = useState("");
+    const [step, setStep] = useState(1); // 1 = Enter Email, 2 = Enter Password
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleRequestOtp = async () => {
+    const navigate = useNavigate();
+
+    const handleRequestPassword = async () => {
         setError("");
         setLoading(true);
+
         try {
-            const response = await fetch("http://127.0.0.1:8010/request-otp", {
+            console.log("Requesting password for:", email); // Debugging log
+            const response = await fetch("http://127.0.0.1:8010/request-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to send Password. Please check your email.");
+                throw new Error("Failed to send password. Please check your email.");
             }
 
             alert("Password sent to your email!");
             setStep(2);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            console.error("Error requesting password:", err);
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError("An unknown error occurred.");
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    const handleVerifyOtp = async () => {
+    const handleVerifyPassword = async () => {
         setError("");
         setLoading(true);
+
         try {
-            const response = await fetch("http://127.0.0.1:8010/verify-otp", {
+            console.log("Verifying password for:", email);
+            const response = await fetch("http://127.0.0.1:8010/verify-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, otp }),
+                body: JSON.stringify({ email, password }),
             });
 
+            console.log("Response received:", response);
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error("Invalid Password. Please try again.");
+                throw new Error(data.detail || "Invalid password.");
             }
 
             alert("Login successful!");
-            localStorage.setItem("isAuthenticated", "true"); // Store login state
-        } catch (err: any) {
-            setError(err.message);
+            localStorage.setItem("isAuthenticated", "true");
+            navigate("/levels");
+        } catch (err: unknown) {
+            console.error("Password verification failed:", err);
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError("An unexpected error occurred.");
+            }
         } finally {
             setLoading(false);
         }
@@ -73,29 +94,29 @@ const LoginScreen = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="p-4 w-full bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500 text-white text-xl"
+                            className="p-4 w-full bg-gray-700 border border-gray-600 rounded-xl text-white text-xl"
                         />
                         <button
-                            onClick={handleRequestOtp}
-                            className="bg-blue-600 text-white py-3 text-xl font-bold rounded-xl hover:bg-blue-700 transition duration-300 shadow-lg w-full mt-6"
+                            onClick={handleRequestPassword}
+                            className="bg-blue-600 text-white py-3 text-xl font-bold rounded-xl hover:bg-blue-700 transition duration-300 w-full mt-6"
                             disabled={loading}
                         >
-                            {loading ? "Sending Password..." : "Login"}
+                            {loading ? "Sending Password..." : "Request Password"}
                         </button>
                     </div>
                 ) : (
                     <div>
                         <input
-                            type="text"
+                            type="password"
                             placeholder="Enter Password"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="p-4 w-full bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500 text-white text-xl"
+                            className="p-4 w-full bg-gray-700 border border-gray-600 rounded-xl text-white text-xl"
                         />
                         <button
-                            onClick={handleVerifyOtp}
-                            className="bg-green-600 text-white py-3 text-xl font-bold rounded-xl hover:bg-green-700 transition duration-300 shadow-lg w-full mt-6"
+                            onClick={handleVerifyPassword}
+                            className="bg-green-600 text-white py-3 text-xl font-bold rounded-xl hover:bg-green-700 transition duration-300 w-full mt-6"
                             disabled={loading}
                         >
                             {loading ? "Verifying..." : "Verify Password"}
@@ -104,8 +125,8 @@ const LoginScreen = () => {
                 )}
 
                 <p className="text-center text-lg text-gray-400 mt-8">
-                    Didn't receive an Password?{" "}
-                    <button onClick={handleRequestOtp} className="text-blue-400 hover:underline">
+                    Didn't receive a password?{" "}
+                    <button onClick={handleRequestPassword} className="text-blue-400 hover:underline">
                         Resend Password
                     </button>
                 </p>
